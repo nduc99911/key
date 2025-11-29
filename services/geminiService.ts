@@ -3,12 +3,16 @@ import { KeywordData, GeneratedScript, ScriptRequestOptions } from "../types";
 
 // Helper to get the API client
 const getAiClient = () => {
-  const apiKey = process.env.API_KEY;
-  if (!apiKey) {
-    console.error("API Key not found in environment variables");
+  // Ưu tiên lấy từ biến môi trường, sau đó đến localStorage
+  const envKey = process.env.API_KEY;
+  const localKey = localStorage.getItem('user_gemini_api_key');
+  const finalKey = envKey || localKey || '';
+
+  if (!finalKey) {
+    console.warn("API Key is missing. Please enter it in the settings.");
   }
-  // Fallback or error handling handled by UI if key is missing
-  return new GoogleGenAI({ apiKey: apiKey || '' });
+  
+  return new GoogleGenAI({ apiKey: finalKey });
 };
 
 /**
@@ -57,8 +61,11 @@ export const generateKeywordResearch = async (topic: string): Promise<KeywordDat
     if (!jsonText) return [];
     
     return JSON.parse(jsonText) as KeywordData[];
-  } catch (error) {
+  } catch (error: any) {
     console.error("Error generating keywords:", error);
+    if (error.message?.includes('API key')) {
+      throw new Error("Vui lòng nhập API Key hợp lệ trong phần cài đặt.");
+    }
     throw new Error("Không thể phân tích từ khóa lúc này.");
   }
 };
@@ -149,8 +156,11 @@ export const generateViralScript = async (options: ScriptRequestOptions): Promis
     if (!jsonText) throw new Error("Empty response from AI");
 
     return JSON.parse(jsonText) as GeneratedScript;
-  } catch (error) {
+  } catch (error: any) {
     console.error("Error generating script:", error);
+    if (error.message?.includes('API key')) {
+      throw new Error("Vui lòng nhập API Key hợp lệ trong phần cài đặt.");
+    }
     throw new Error("Không thể tạo kịch bản lúc này. Vui lòng thử lại.");
   }
 };
